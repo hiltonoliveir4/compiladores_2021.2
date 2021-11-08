@@ -2,22 +2,19 @@ import re
 
 class AnalisadorLexico:
     regex = re.compile('[a-zA-Z_]+[a-zA-Z0-9_]*|[+|*|/|\-|{|}|(|)|\[|\]|\.|,|;|<|>|=|~|&]')
-
     keyword = [
         'class','constructor','function','method','field','static',
         'var' ,'int','char','boolean' ,'void' ,'true','false','null',
         'this','let','do','if','else','while','return'
     ]
-
     symbol = '[+|*|/|{|}|(|)|.|,|;|<|>|=|~]'
     identifier = '[a-zA-Z_]+[a-zA-Z0-9_]*'
 
-    def __init__(self, caminho):
+    def __init__(self):
         self.arquivo = open('main.txt', 'r').read()
-        self.arquivo = re.sub('//.*'," ", self.arquivo)
-        self.arquivo = re.sub('(/\*(.|\n)*?\*/)'," ", self.arquivo)
+        self.arquivo = re.sub('//.*'," ", self.arquivo) #remover os comentário com //
+        self.arquivo = re.sub('(/\*(.|\n)*?\*/)'," ", self.arquivo) #remover os comentário com /* */
         self.tokens = self.regex.findall(self.arquivo)
-        self.saida = open('tokens.xml', 'w+')
 
     def trocarXML(self, simbolo):
         if (simbolo == '>'):
@@ -42,13 +39,14 @@ class AnalisadorLexico:
             return 'symbol'
 
     def escrever(self):
-        self.saida.writelines('<tokens>\n') 
+        saida = open('saida.xml', 'w+')
+        saida.writelines('<tokens>\n') 
         for token in self.tokens:
             tipo = self.tipo(token)
 
-            self.saida.writelines(('<{0}> {1} </{2}>\n'.format(tipo, token, tipo)))
-        self.saida.writelines('</tokens>') 
+            saida.writelines(('<{0}> {1} </{2}>\n'.format(tipo, token, tipo)))
+        saida.writelines('</tokens>') 
         print('finalizado')
 
-analisador = AnalisadorLexico("main.txt")
+analisador = AnalisadorLexico()
 analisador.escrever()
