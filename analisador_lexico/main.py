@@ -1,7 +1,7 @@
 import re
 
 class AnalisadorLexico:
-    regex = re.compile('[a-zA-Z_]+[a-zA-Z0-9_]*|[+|*|/|\-|{|}|(|)|\[|\]|\.|,|;|<|>|=|~|&]')
+    regex = re.compile('".*"|[0-9]+|[a-zA-Z_]+[a-zA-Z0-9_]*|[+|*|/|\-|{|}|(|)|\[|\]|\.|,|;|<|>|=|~|&]')
     keyword = [
         'class','constructor','function','method','field','static',
         'var' ,'int','char','boolean' ,'void' ,'true','false','null',
@@ -9,6 +9,8 @@ class AnalisadorLexico:
     ]
     symbol = '[+|*|/|{|}|(|)|.|,|;|<|>|=|~]'
     identifier = '[a-zA-Z_]+[a-zA-Z0-9_]*'
+    integer = '[0-9]+'
+    string = '".*"'
 
     def __init__(self):
         self.arquivo = open('main.txt', 'r').read()
@@ -37,6 +39,12 @@ class AnalisadorLexico:
 
         elif(re.match(self.symbol, token)):
             return 'symbol'
+
+        elif(re.match(self.integer, token)):
+            return 'integer'
+        
+        elif(re.match(self.string, token)):
+            return 'string'
 
     def escrever(self):
         saida = open('saida.xml', 'w+')

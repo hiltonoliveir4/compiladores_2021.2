@@ -12,6 +12,8 @@ class Square {
 
     // Location on the screen
     field int x, y;
+    let z = 10;
+    let string = "eu sou uma string";
 
     // The size of the square
     field int size;
