@@ -6,5 +6,5 @@ Disciplina de Compiladores UFMA de 2021.2
 * Cayo Roberto Azevedo Chmielswki
 
 ## Como utilizar
-1. Incluir arquivo a ser analisado no diretorio raiz com o nome "main.txt"
-3. Rodar programa até que apareça a mensagem "finalizado"
+1. Incluir arquivo a ser analisado no diretorio raiz com o nome "Square.jack"
+2. Rodar o arquivo analisador_sintatico.py
