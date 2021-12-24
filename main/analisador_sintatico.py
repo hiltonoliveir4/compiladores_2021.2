@@ -1,10 +1,14 @@
 from analisador_lexico import AnalisadorLexico
-import re
+from symboltable import Symboltable
+from vmwriter import Vmwriter
 
 
 class AnalisadorSintatico:
     def __init__(self):
         self.analisador_lexico = AnalisadorLexico()
+        self.st = Symboltable()
+        self.vm = Vmwriter()
+        self.className = ''
 
     def compilar(self):
         self.compilarClasse()
@@ -17,8 +21,8 @@ class AnalisadorSintatico:
 
     def compilarClasse(self):
         if(self.analisador_lexico.buscartoken() != "class"):
-            print('ERROR: Um keyword class era esperado')
-            return
+            raise Exception("Era esperado um identificador class no lugar de {0}".format(
+                self.analisador_lexico.buscartoken()))
 
         self.escreverEstado('class', 1)
         self.analisador_lexico.escrever()  # espaço para classe
@@ -27,6 +31,8 @@ class AnalisadorSintatico:
         if(self.analisador_lexico.tipo() != 'identifier'):
             raise Exception("Era esperado um identificador no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
+
+        self.className = self.analisador_lexico.buscartoken()
 
         self.analisador_lexico.escrever()  # espaço para identificador da classe
         self.analisador_lexico.avancar()
@@ -43,18 +49,24 @@ class AnalisadorSintatico:
                 self.compilarSubroutineDec()
 
         self.escreverEstado("class", 2)
+        self.vm.close()
 
     def compilarClassVarDec(self):
         self.escreverEstado('classVarDec', 1)
 
         self.analisador_lexico.escrever()  # espaço para static ou field
+        kind = self.analisador_lexico.buscartoken().upper()
         self.analisador_lexico.avancar()
+
         self.analisador_lexico.escrever()  # espaço para tipo
+        tipo = self.analisador_lexico.buscartoken()
         self.analisador_lexico.avancar()
 
         if(self.analisador_lexico.tipo() != 'identifier'):
             raise Exception("Era esperado um identificador no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
+
+        self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
 
         self.analisador_lexico.escrever()  # espaço identifier
         self.analisador_lexico.avancar()
@@ -67,6 +79,8 @@ class AnalisadorSintatico:
                 raise Exception("Era esperado um identificador no lugar de {0}".format(
                     self.analisador_lexico.buscartoken()))
 
+            self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
+
             self.analisador_lexico.escrever()  # espaco para identificador
             self.analisador_lexico.avancar()
 
@@ -78,7 +92,13 @@ class AnalisadorSintatico:
     def compilarSubroutineDec(self):
         self.escreverEstado('subroutineDec', 1)
 
+        self.st.clear()
+        subRoutineType = self.analisador_lexico.buscartoken()
+        if(subRoutineType == 'method'):
+            self.st.addElement("this", self.className, "ARG")
+
         self.analisador_lexico.escrever()  # espaço para method, construct ou function
+        tipo = self.analisador_lexico.buscartoken()
         self.analisador_lexico.avancar()
 
         self.analisador_lexico.escrever()  # escreve o tipo
@@ -87,6 +107,8 @@ class AnalisadorSintatico:
         if(self.analisador_lexico.tipo() != 'identifier'):
             raise Exception("Era esperado um identificador no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
+
+        function_name = "{}.{}".format(self.className, self.analisador_lexico.buscartoken())
 
         self.analisador_lexico.escrever()  # espaço o identificador
         self.analisador_lexico.avancar()
@@ -107,17 +129,19 @@ class AnalisadorSintatico:
         self.analisador_lexico.escrever()  # espaço para )
         self.analisador_lexico.avancar()
 
-        self.compilarSubroutineBody()
+        self.compilarSubroutineBody(function_name, tipo)
 
         self.escreverEstado('subroutineDec', 2)
 
     def compilarParameterList(self):
         self.escreverEstado('parameterList', 1)
 
+        kind = 'ARG'
         if(self.analisador_lexico.buscartoken() == ')'):
             self.escreverEstado('parameterList', 2)
             return
 
+        tipo = self.analisador_lexico.buscartoken()
         self.analisador_lexico.escrever()  # espaço para tipo
         self.analisador_lexico.avancar()
 
@@ -125,6 +149,7 @@ class AnalisadorSintatico:
             raise Exception("Era esperado um identificador no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
 
+        self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
         self.analisador_lexico.escrever()  # espaço para identifier
         self.analisador_lexico.avancar()
 
@@ -135,6 +160,8 @@ class AnalisadorSintatico:
 
             self.analisador_lexico.escrever()  # espaço para ,
             self.analisador_lexico.avancar()
+
+            tipo = self.analisador_lexico.buscartoken()
             self.analisador_lexico.escrever()  # espaço para tipo
             self.analisador_lexico.avancar()
 
@@ -142,12 +169,13 @@ class AnalisadorSintatico:
                 raise Exception("Era esperado um identificador no lugar de {0}".format(
                     self.analisador_lexico.buscartoken()))
 
+            self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
             self.analisador_lexico.escrever()  # espaço o identificador
             self.analisador_lexico.avancar()
 
         self.escreverEstado('parameterList', 2)
 
-    def compilarSubroutineBody(self):
+    def compilarSubroutineBody(self, function_name, tipo):
         self.escreverEstado('subroutineBody', 1)
 
         if(self.analisador_lexico.buscartoken() != '{'):
@@ -156,6 +184,20 @@ class AnalisadorSintatico:
 
         self.analisador_lexico.escrever()  # espaço para {
         self.analisador_lexico.avancar()
+
+        while(self.analisador_lexico.buscartoken() == 'var'):
+            self.compilarVarDec()
+
+        nlocals = self.st.getCount('VAR')
+        self.vm.writeFunction(function_name, nlocals)
+
+        if(tipo == 'constructor'):
+            self.vm.push("CONST", self.st.getCount("FIELD"))
+            self.vm.writeCall("Memory.alloc", 1)
+            self.vm.pop('POINTER', 0)
+        elif(tipo == 'method'):
+            self.vm.push("ARG",0)
+            self.vm.pop("POINTER", 0)
 
         if (self.analisador_lexico.buscartoken() in ["return", "let", "do", "if", "while"]):
             self.compilarStatements()
@@ -169,6 +211,52 @@ class AnalisadorSintatico:
 
         self.escreverEstado('subroutineBody', 2)
 
+    def compilarVarDec(self):
+        self.escreverEstado('varDec', 1)
+        if(self.analisador_lexico.buscartoken() != 'var'):
+            raise Exception(
+                "Era esperado var no lugar de {0}".format(self.analisador_lexico.buscartoken()))
+
+        kind = 'VAR'
+        self.analisador_lexico.escrever()  # espaço para var
+        self.analisador_lexico.avancar()
+
+        tipo = self.analisador_lexico.buscartoken()
+        self.analisador_lexico.escrever()  # espaço para tipo
+        self.analisador_lexico.avancar()
+
+        if(self.analisador_lexico.tipo() != 'identifier'):
+            raise Exception("Era esperado um identificador no lugar de {0}".format(
+                self.analisador_lexico.buscartoken()))
+
+        self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
+        self.analisador_lexico.escrever()  # espaço para identificador
+        self.analisador_lexico.avancar()
+
+        while (self.analisador_lexico.buscartoken() == ','):
+            if(self.analisador_lexico.buscartoken() != ','):
+                raise Exception(
+                    "Era esperado , no lugar de {0}".format(self.analisador_lexico.buscartoken()))
+            self.analisador_lexico.escrever()  # espaço para ,
+            self.analisador_lexico.avancar()
+
+            if(self.analisador_lexico.tipo() != 'identifier'):
+                        raise Exception("Era esperado um identificador no lugar de {0}".format(
+                            self.analisador_lexico.buscartoken()))
+
+            self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
+            self.analisador_lexico.escrever()  # espaço para identificador
+            self.analisador_lexico.avancar()
+
+        if(self.analisador_lexico.buscartoken() != ';'):
+            raise Exception(
+                "Era esperado ; no lugar de {0}".format(self.analisador_lexico.buscartoken()))
+
+        self.analisador_lexico.escrever()  # espaço para ;
+        self.analisador_lexico.avancar()
+
+        self.escreverEstado('varDec', 2)
+
     def compilarStatements(self):
         self.escreverEstado('statements', 1)
 
@@ -177,11 +265,11 @@ class AnalisadorSintatico:
                 self.ifStatement()
             elif(self.analisador_lexico.buscartoken() == "do"):
                 self.doStatement()
-            elif(self.analisador_lexico.buscartoken == "let"):
+            elif(self.analisador_lexico.buscartoken() == "let"):
                 self.letStatement()
-            elif(self.analisador_lexico.buscartoken == "while"):
+            elif(self.analisador_lexico.buscartoken() == "while"):
                 self.whileStatement()
-            elif(self.analisador_lexico.buscartoken == "return"):
+            elif(self.analisador_lexico.buscartoken() == "return"):
                 self.returnStatement()
             else:
                 while(self.analisador_lexico.buscartoken() != '}'):
@@ -192,12 +280,14 @@ class AnalisadorSintatico:
 
     def returnStatement(self):
         self.escreverEstado('returnStatement', 1)
-
         self.analisador_lexico.escrever()  # espaço para return
         self.analisador_lexico.avancar()
 
         if(self.analisador_lexico.buscartoken() != ';'):
             self.compilarExpression()
+
+        self.vm.push('CONST', 0)
+        self.vm.writeReturn()
 
         self.analisador_lexico.escrever()  # espaço para ;
         self.analisador_lexico.avancar()
@@ -271,7 +361,7 @@ class AnalisadorSintatico:
 
         if(self.analisador_lexico.tipo() != 'identifier'):
             raise Exception("Esperando por um identificador, mas um {} dado " .format(
-                self.analizador_lexico.tipo()))
+                self.analisador_lexico.tipo()))
 
         self.analisador_lexico.escrever()  # escreve o identificador
         self.analisador_lexico.avancar()
@@ -286,44 +376,44 @@ class AnalisadorSintatico:
     def letStatement(self):
         self.escreverEstado('letStatement', 1)
 
-        self.analizador_lexico.escrever()  # escreve  let
-        self.analizador_lexico.avancar()
+        self.analisador_lexico.escrever()  # escreve  let
+        self.analisador_lexico.avancar()
 
         if (self.analisador_lexico.tipo() != 'identifier'):
             raise Exception("Esperando por um identificador no lugar de {}" .format(
-                self.analizador_lexico.buscartoken()))
+                self.analisador_lexico.buscartoken()))
 
-        self.analizador_lexico.avancar()  # escreve o identificador
-        self.analizador_lexico.escrever()
+        self.analisador_lexico.avancar()  # escreve o identificador
+        self.analisador_lexico.escrever()
 
         while(self.analisador_lexico.buscartoken() == '['):
-            self.analizador_lexico.escrever()  # escreve [
-            self.analizador_lexico.avancar()
+            self.analisador_lexico.escrever()  # escreve [
+            self.analisador_lexico.avancar()
 
             self.compilarExpression()
 
             if (self.analisador_lexico.buscartoken() != ']'):
                 raise Exception("Esperando por um ] no lugar de {}" .format(
-                    self.analizador_lexico.buscartoken()))
+                    self.analisador_lexico.buscartoken()))
 
-            self.analizador_lexico.escrever()  # escreve ]
-            self.analizador_lexico.avancar()
+            self.analisador_lexico.escrever()  # escreve ]
+            self.analisador_lexico.avancar()
 
         if (self.analisador_lexico.buscartoken() != '='):
             raise Exception("Esperando por um = no lugar de {}" .format(
-                self.analizador_lexico.buscartoken()))
+                self.analisador_lexico.buscartoken()))
 
-        self.analizador_lexico.escrever()  # escreve =
-        self.analizador_lexico.avancar()
+        self.analisador_lexico.escrever()  # escreve =
+        self.analisador_lexico.avancar()
 
         self.compilarExpression()
 
         if (self.analisador_lexico.buscartoken() != ';'):
             raise Exception("Esperando por um ; no lugar de {}" .format(
-                self.analizador_lexico.buscartoken()))
+                self.analisador_lexico.buscartoken()))
 
-        self.analizador_lexico.escrever()  # escreve ;
-        self.analizador_lexico.avancar()
+        self.analisador_lexico.escrever()  # escreve ;
+        self.analisador_lexico.avancar()
 
         self.escreverEstado('letStatement', 2)
 
@@ -337,8 +427,8 @@ class AnalisadorSintatico:
             raise Exception("Era esperado um ( no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
 
-        self.analizador_lexico.escrever()  # escreve (
-        self.analizador_lexico.avancar()
+        self.analisador_lexico.escrever()  # escreve (
+        self.analisador_lexico.avancar()
 
         self.compilarExpression()
 
@@ -488,10 +578,6 @@ class AnalisadorSintatico:
             self.compilarTermo()
 
         else:
-            print(self.analisador_lexico.buscartoken())
-            print(self.analisador_lexico.indice)
-            print(
-                self.analisador_lexico.tokens[self.analisador_lexico.indice - 1])
             raise Exception("Era esperado um termo no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
 

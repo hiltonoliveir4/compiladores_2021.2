@@ -1,0 +1,52 @@
+function Square.new 0
+push constant 3
+call Memory.alloc 1
+pop pointer 0
+push constant 0
+return
+function Square.dispose 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.draw 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.erase 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.incSize 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.decSize 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.moveUp 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.moveDown 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.moveLeft 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+function Square.moveRight 0
+push argument 0
+pop pointer 0
+push constant 0
+return
+close 

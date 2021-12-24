@@ -1,4 +1,5 @@
 import re
+import os
 
 class AnalisadorLexico:
     regex = re.compile('".*"|[0-9]+|[a-zA-Z_]+[a-zA-Z0-9_]*|[+|*|/|\-|{|}|(|)|\[|\]|\.|,|;|<|>|=|~|&]')
@@ -13,13 +14,13 @@ class AnalisadorLexico:
     string = '".*"'
 
     def __init__(self):
-        self.arquivo = open('Square.jack', 'r').read()
+        self.arquivo = open('./main/Square.jack', 'r').read()
         self.arquivo = re.sub('//.*'," ", self.arquivo) #remover os comentário com //
         self.arquivo = re.sub('(/\*(.|\n)*?\*/)'," ", self.arquivo) #remover os comentário com /* */
         self.tokens = self.regex.findall(self.arquivo)
         self.lentokens = len(self.tokens)
         self.indice = 0
-        self.saida = open('saida.xml', 'w+')
+        self.saida = open('./main/saida.xml', 'w+')
         self.identador = 0
 
     def trocarXML(self, simbolo):
