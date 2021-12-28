@@ -2,51 +2,89 @@ function Square.new 0
 push constant 3
 call Memory.alloc 1
 pop pointer 0
+pop temp 0
 push constant 0
 return
 function Square.dispose 0
 push argument 0
 pop pointer 0
+pop temp 0
 push constant 0
 return
 function Square.draw 0
 push argument 0
 pop pointer 0
+pop temp 0
+pop temp 0
 push constant 0
 return
 function Square.erase 0
 push argument 0
 pop pointer 0
+pop temp 0
+pop temp 0
 push constant 0
 return
 function Square.incSize 0
 push argument 0
 pop pointer 0
+if-goto IF_TRUE0goto IF_FALSE0
+label IF_TRUE0
+pop temp 0
+pop temp 0
 push constant 0
 return
 function Square.decSize 0
 push argument 0
 pop pointer 0
+if-goto IF_TRUE1goto IF_FALSE1
+label IF_TRUE1
+pop temp 0
+pop temp 0
 push constant 0
 return
 function Square.moveUp 0
 push argument 0
 pop pointer 0
+if-goto IF_TRUE2goto IF_FALSE2
+label IF_TRUE2
+pop temp 0
+pop temp 0
+pop temp 0
+pop temp 0
 push constant 0
 return
 function Square.moveDown 0
 push argument 0
 pop pointer 0
+if-goto IF_TRUE3goto IF_FALSE3
+label IF_TRUE3
+pop temp 0
+pop temp 0
+pop temp 0
+pop temp 0
 push constant 0
 return
 function Square.moveLeft 0
 push argument 0
 pop pointer 0
+if-goto IF_TRUE4goto IF_FALSE4
+label IF_TRUE4
+pop temp 0
+pop temp 0
+pop temp 0
+pop temp 0
 push constant 0
 return
 function Square.moveRight 0
 push argument 0
 pop pointer 0
+if-goto IF_TRUE5goto IF_FALSE5
+label IF_TRUE5
+pop temp 0
+pop temp 0
+pop temp 0
+pop temp 0
 push constant 0
 return
 close 

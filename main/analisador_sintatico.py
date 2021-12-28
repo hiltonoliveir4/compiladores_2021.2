@@ -10,6 +10,29 @@ class AnalisadorSintatico:
         self.vm = Vmwriter()
         self.className = ''
 
+
+        self.ifLabelNum = 0
+        self.whileLabelNum = 0
+
+        self.kindToSeg = {
+            "FIELD" : "THIS",
+            "ARG" : "ARG",
+            "STATIC" : "STATIC",
+            "VAR" : "LOCAL"
+        }
+
+        self.operador = {
+            '+' : 'ADD',
+            '-' : 'SUB',
+            '&amp' : 'AND',
+            '|' : 'OR',
+            '&lt' : 'LT',
+            '&gt' : 'GT',
+            '=' : 'EQ'
+        }
+
+        }
+
     def compilar(self):
         self.compilarClasse()
 
@@ -297,6 +320,13 @@ class AnalisadorSintatico:
     def ifStatement(self):
         self.escreverEstado('ifStatement', 1)
 
+        labelTrue = "IF_TRUE{}".format(self.ifLabelNum)
+        labelFalse = "IF_FALSE{}".format(self.ifLabelNum)
+        labelEnd = "IF_END{}".format(self.ifLabelNum)
+
+        self.ifLabelNum += 1
+
+
         self.analisador_lexico.escrever()  # espaço para if
         self.analisador_lexico.avancar()
 
@@ -309,13 +339,17 @@ class AnalisadorSintatico:
 
         self.compilarExpression()
 
+        self.vm.writeIfGoto(labelTrue)
+        self.vm.writeGoto(labelFalse)
+        self.vm.writeLabel(labelTrue)
+
         if(self.analisador_lexico.buscartoken() != ')'):
             raise Exception("Era esperado um ) no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
 
         self.analisador_lexico.escrever()  # espaço para )
         self.analisador_lexico.avancar()
-
+        
         if(self.analisador_lexico.buscartoken() != '{'):
             raise Exception(
                 "Era esperado um " + "{" + " no lugar de {0}".format(self.analisador_lexico.buscartoken()))
@@ -352,6 +386,8 @@ class AnalisadorSintatico:
             self.analisador_lexico.escrever()  # espaço para }
             self.analisador_lexico.avancar()
 
+            self.vm.writeLabel(labelEnd)
+
         self.escreverEstado('ifStatement', 2)
 
     def doStatement(self):
@@ -368,6 +404,8 @@ class AnalisadorSintatico:
 
         self.compilarSubroutineCall()
 
+        self.vm.pop("TEMP", 0)
+
         self.analisador_lexico.escrever()
         self.analisador_lexico.avancar()
 
@@ -382,7 +420,10 @@ class AnalisadorSintatico:
         if (self.analisador_lexico.tipo() != 'identifier'):
             raise Exception("Esperando por um identificador no lugar de {}" .format(
                 self.analisador_lexico.buscartoken()))
-
+        tipo, categ, pos = self.st.get(self.analisador_lexico.buscartoken())
+        print(categ)
+        categoria = self.kindToSeg[categ]
+        print(categoria)
         self.analisador_lexico.avancar()  # escreve o identificador
         self.analisador_lexico.escrever()
 
@@ -399,14 +440,24 @@ class AnalisadorSintatico:
             self.analisador_lexico.escrever()  # escreve ]
             self.analisador_lexico.avancar()
 
+            self.vm.push(categoria, pos)
+            self.vm.writeExpression("ADD")
+            self.vm.pop("TEMP", 0)
+
         if (self.analisador_lexico.buscartoken() != '='):
             raise Exception("Esperando por um = no lugar de {}" .format(
                 self.analisador_lexico.buscartoken()))
+
 
         self.analisador_lexico.escrever()  # escreve =
         self.analisador_lexico.avancar()
 
         self.compilarExpression()
+
+        self.vm.push("TEMP", 0)
+        self.vm.pop("POINTER", 1)
+        self.vm.pop("THAT", 0)
+
 
         if (self.analisador_lexico.buscartoken() != ';'):
             raise Exception("Esperando por um ; no lugar de {}" .format(
@@ -423,6 +474,10 @@ class AnalisadorSintatico:
         self.analisador_lexico.escrever()  # escreve while
         self.analisador_lexico.avancar()
 
+        labelTrue = "WHILE_EXP{}".format(self.whileLabelNum)
+        labelFalse = "WHILE_END{}".format(self.whileLabelNum)
+        self.whileLabelNum += 1
+        self.vm.writeLabel(labelTrue)
         if(self.analisador_lexico.buscartoken() != '('):
             raise Exception("Era esperado um ( no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
@@ -431,6 +486,7 @@ class AnalisadorSintatico:
         self.analisador_lexico.avancar()
 
         self.compilarExpression()
+        self.vm.writeExpression("NOT")
 
         if(self.analisador_lexico.buscartoken() != ')'):
             raise Exception("Era esperado um ) no lugar de {0}".format(
@@ -439,6 +495,7 @@ class AnalisadorSintatico:
         self.analisador_lexico.escrever()  # )
         self.analisador_lexico.avancar()
 
+        
         if(self.analisador_lexico.buscartoken() != '{'):
             raise Exception("Era esperado um" + "{" + "no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
@@ -446,7 +503,12 @@ class AnalisadorSintatico:
         self.analisador_lexico.escrever()  # {
         self.analisador_lexico.avancar()
 
+        self.vm.writeIfGoto(labelFalse)
+
         self.compilarStatements()
+
+        self.vm.writeGoto(labelTrue)
+        self.vm.writeLabel(labelFalse)
 
         if(self.analisador_lexico.buscartoken() != '}'):
             raise Exception("Era esperado um" + "}" + "no lugar de {0}".format(
@@ -462,6 +524,10 @@ class AnalisadorSintatico:
         # if(self.analisador_lexico.buscartoken() != "("):
         #     raise Exception("Era esperado um identificador no lugar de {0}".format(
         #         self.analisador_lexico.buscartoken()))
+        
+
+
+
 
         if(self.analisador_lexico.buscartoken() == "."):  # é um método
             self.analisador_lexico.escrever()  # .
@@ -471,6 +537,8 @@ class AnalisadorSintatico:
                     self.analisador_lexico.buscartoken()))
             self.analisador_lexico.escrever()  # escreve o identificador
             self.analisador_lexico.avancar()
+
+            
 
         if(self.analisador_lexico.buscartoken() != "("):
             raise Exception("Era esperado um ( no lugar de {0}".format(
@@ -494,10 +562,13 @@ class AnalisadorSintatico:
     def compilarExpressionList(self):
         self.escreverEstado('expressionList', 1)
 
+        numArgs = 0
+
         if(self.analisador_lexico.buscartoken() == ")"):
-            return
+            return numArgs
 
         self.compilarExpression()
+        numArgs = numArgs + 1
 
         while(self.analisador_lexico.buscartoken() != ")"):
             if(self.analisador_lexico.buscartoken() != ","):
@@ -510,6 +581,7 @@ class AnalisadorSintatico:
             self.compilarExpression()
 
         self.escreverEstado('expressionList', 2)
+        return numArgs
 
     def compilarExpression(self):
         self.escreverEstado('expression', 1)
