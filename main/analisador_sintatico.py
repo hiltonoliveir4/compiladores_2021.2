@@ -31,7 +31,7 @@ class AnalisadorSintatico:
             '=' : 'EQ'
         }
 
-        }
+        
 
     def compilar(self):
         self.compilarClasse()
