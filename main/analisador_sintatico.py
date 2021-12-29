@@ -589,6 +589,7 @@ class AnalisadorSintatico:
         self.compilarTermo()
 
         while (self.analisador_lexico.buscartoken() in ['+', '-', '&amp', '|', '&lt', '&gt', '=']):
+            operacao = self.analisador_lexico.buscartoken()
             self.analisador_lexico.escrever()  # escreve +, &amp, |, &lt, &gt, =
             self.analisador_lexico.avancar()
 
@@ -600,7 +601,15 @@ class AnalisadorSintatico:
             self.analisador_lexico.avancar()
 
             self.compilarTermo()
-
+            if(operacao in self.operador):
+                self.vm.writeExpression(self.operador.get(operacao))
+            elif(operacao == "*"):
+                self.vm.writeCall("Math.multiply",2)
+            elif(operacao == "/"):
+                self.vm.writeCall("Math.divide",2)
+            else:
+                raise Exception
+                        
         self.escreverEstado('expression', 2)
 
     def compilarTermo(self):
