@@ -1,7 +1,7 @@
 class Vmwriter:
 
     def __init__(self):
-        self.output = open("./main/main.vm", "w+")
+        self.output = open("./main/square.vm", "w+")
 
         self.helperDict = {
             "POINTER": "pointer",
