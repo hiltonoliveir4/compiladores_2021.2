@@ -51,20 +51,14 @@ class Symboltable:
             return self.fieldTable[key]
         
         else:
-            raise KeyError("Empty tables")
+            return False
     
     def get(self, key, default = (None, None, -1)):
         ref = None
         if(self[key]):
             ref = self[key]
         else:
-            res = default
+            ref = default
 
         return ref
 
-        '''try:
-            ret = self[key]
-        except KeyError:
-            res = default
-        finally:
-            return ref'''

@@ -31,8 +31,6 @@ class AnalisadorSintatico:
             '=' : 'EQ'
         }
 
-        
-
     def compilar(self):
         self.compilarClasse()
 
@@ -400,9 +398,10 @@ class AnalisadorSintatico:
                 self.analisador_lexico.tipo()))
 
         self.analisador_lexico.escrever()  # escreve o identificador
+        ident = self.analisador_lexico.buscartoken()
         self.analisador_lexico.avancar()
 
-        self.compilarSubroutineCall()
+        self.compilarSubroutineCall(ident)
 
         self.vm.pop("TEMP", 0)
 
@@ -421,9 +420,7 @@ class AnalisadorSintatico:
             raise Exception("Esperando por um identificador no lugar de {}" .format(
                 self.analisador_lexico.buscartoken()))
         tipo, categ, pos = self.st.get(self.analisador_lexico.buscartoken())
-        print(categ)
         categoria = self.kindToSeg[categ]
-        print(categoria)
         self.analisador_lexico.avancar()  # escreve o identificador
         self.analisador_lexico.escrever()
 
@@ -519,15 +516,9 @@ class AnalisadorSintatico:
 
         self.escreverEstado('whileStatement', 2)
 
-    def compilarSubroutineCall(self):
+    def compilarSubroutineCall(self, ident):
         self.escreverEstado('subroutineCall', 1)
-        # if(self.analisador_lexico.buscartoken() != "("):
-        #     raise Exception("Era esperado um identificador no lugar de {0}".format(
-        #         self.analisador_lexico.buscartoken()))
-        
-
-
-
+        numargs = 0
 
         if(self.analisador_lexico.buscartoken() == "."):  # é um método
             self.analisador_lexico.escrever()  # .
@@ -535,10 +526,25 @@ class AnalisadorSintatico:
             if(self.analisador_lexico.tipo() != "identifier"):
                 raise Exception("Era esperado um identificador no lugar de {0}".format(
                     self.analisador_lexico.buscartoken()))
+            subroutine_name = self.analisador_lexico.buscartoken()
             self.analisador_lexico.escrever()  # escreve o identificador
             self.analisador_lexico.avancar()
 
-            
+            type, category, pos = self.st.get(ident)
+
+            if(type != None):
+                categoria = self.kindToSeg[category]
+                self.vm.push(categoria, pos)
+                function_name = "{}.{}".format(type, subroutine_name)
+                numargs += 1
+            else:
+                function_name = "{}.{}".format(ident, subroutine_name)
+
+        elif(self.analisador_lexico.buscartoken() == "("):
+            subroutine_name = ident
+            function_name = "{}.{}".format(self.className, subroutine_name)
+            numargs += 1
+            self.vm.push("POINTER", 0)
 
         if(self.analisador_lexico.buscartoken() != "("):
             raise Exception("Era esperado um ( no lugar de {0}".format(
@@ -556,6 +562,8 @@ class AnalisadorSintatico:
 
         self.analisador_lexico.escrever()  # escreve o )
         self.analisador_lexico.avancar()
+
+        self.vm.writeCall(function_name, numargs)
 
         self.escreverEstado('subroutineCall', 2)
 
@@ -615,29 +623,60 @@ class AnalisadorSintatico:
     def compilarTermo(self):
         self.escreverEstado('term', 1)
 
-        if(self.analisador_lexico.tipo() in ['string', 'integer'] or self.analisador_lexico.buscartoken() in ['true', 'false', 'null', 'this']):
+        if(self.analisador_lexico.tipo() == 'integer'):
+            self.vm.push('CONST', int(self.analisador_lexico.buscartoken()))
             self.analisador_lexico.escrever()
             self.analisador_lexico.avancar()
 
+        elif(self.analisador_lexico.tipo() == 'string'):
+            self.compilarString()
+
+        elif(self.analisador_lexico.buscartoken() in ['false', 'true', 'null']):
+            self.vm.push('CONST', 0)
+            if(self.analisador_lexico.buscartoken() == 'true'):
+                self.vm.writeExpression('NOT')
+            self.analisador_lexico.escrever()
+            self.analisador_lexico.avancar()
+
+        elif(self.analisador_lexico.buscartoken() == 'this'):
+            self.vm.push("POINTER", 0)
+            self.analisador_lexico.escrever()
+            self.analisador_lexico.avancar()      
+
         elif(self.analisador_lexico.tipo() == 'identifier'):
+            ident = self.analisador_lexico.buscartoken()
             self.analisador_lexico.escrever()  # escreve o identificador
             self.analisador_lexico.avancar()
 
-            if(self.analisador_lexico.buscartoken() == '{'):
-                self.analisador_lexico.escrever()  # escreve o {
-                self.analisador_lexico.avancar()
+            if (self.analisador_lexico.buscartoken() in ['(', '.']):
+                self.compilarSubroutineCall(ident)
 
-                self.compilarExpression()
+            else: #array
+                if (self.analisador_lexico.buscartoken() == '['):
+                    self.analisador_lexico.escrever()  # escreve o [
+                    self.analisador_lexico.avancar()
 
-                if(self.analisador_lexico.buscartoken() != "}"):
-                    raise Exception("Era esperado um } no lugar de {0}".format(
-                        self.analisador_lexico.buscartoken()))
+                    self.compilarExpression()
 
-                self.analisador_lexico.escrever()  # escreve o )
-                self.analisador_lexico.avancar()
+                    tipo, categ, pos = self.st.get(ident)
+                    category = self.kindToSeg[categ]
+                    self.vm.push(category, pos)
+                    self.vm.writeExpression("ADD")
 
-            elif (self.analisador_lexico.buscartoken() in ['(', '.']):
-                self.compilarSubroutineCall()
+                    if(self.analisador_lexico.buscartoken() != "]"):
+                        raise Exception("Era esperado um } no lugar de {0}".format(
+                            self.analisador_lexico.buscartoken()))
+                    
+                    self.vm.pop("POINTER", 1)
+                    self.vm.push("THAT", 0)
+
+                    self.analisador_lexico.escrever()  # escreve o ]
+                    self.analisador_lexico.avancar()
+                
+                else: #variavel simples
+                    tipo, categ, pos = self.st.get(ident)
+                    category = self.kindToSeg[categ]
+                    self.vm.push(category, pos)
 
         elif(self.analisador_lexico.buscartoken() == '('):
             self.analisador_lexico.escrever()  # escreve o (
@@ -656,13 +695,36 @@ class AnalisadorSintatico:
             self.analisador_lexico.escrever()  # escreve - ou ~
             self.analisador_lexico.avancar()
 
+            op = self.analisador_lexico.buscartoken()
             self.compilarTermo()
+
+            if(op == "-"):
+                self.vm.writeExpression("NEG")
+            else:
+                self.vm.writeExpression("NOT")
 
         else:
             raise Exception("Era esperado um termo no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
 
         self.escreverEstado('term', 2)
+
+    def compilarString(self):
+        self.escreverEstado('stringStatement',1)
+        string = self.analisador_lexico.buscartoken[1:]
+        print(string)
+
+        self.vm.push("CONST", len(string))
+        self.vm.writeCall("String.new", 1)
+
+        for char in string:
+            self.vm.push("CONST", ord(char))
+            self.vm.writeCall("String.appendChar", 2)
+
+        self.analisador_lexico.escrever()
+        self.analisador_lexico.avancar()
+
+        self.escreverEstado('stringStatement', 2)
 
 
 a = AnalisadorSintatico()
