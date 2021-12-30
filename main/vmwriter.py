@@ -1,7 +1,6 @@
 class Vmwriter:
-
     def __init__(self):
-        self.output = open("./main/square.vm", "w+")
+        self.output = open("./main/main.vm", "w+")
 
         self.helperDict = {
             "POINTER": "pointer",
@@ -17,13 +16,11 @@ class Vmwriter:
 
     def pop(self, segment, index):
         replaced = self.helperDict.get(segment)
-
         if(replaced == None):
             raise Exception("Error 1")
         self.output.writelines("pop {} {}\n".format(replaced, index))
     
     def push(self, segment, index):
-
         replaced = self.helperDict.get(segment)
         if(replaced == None):
             return Exception
@@ -36,7 +33,7 @@ class Vmwriter:
         self.output.writelines("goto {}\n".format(label))
 
     def writeIfGoto(self, label):
-        self.output.writelines("if-goto {}".format(label))
+        self.output.writelines("if-goto {}\n".format(label))
     
     def writeLabel(self, label):
         self.output.writelines("label {}\n".format(label))

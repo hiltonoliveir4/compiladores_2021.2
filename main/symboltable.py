@@ -1,8 +1,5 @@
 class Symboltable:
-
     def __init__(self, *args):
-
-        #dict.__init__(self, *args)
         self.subroutineTable = {}
         self.staticTable = {}
         self.fieldTable = {}
@@ -22,16 +19,12 @@ class Symboltable:
             index = self.count[kind]
         except KeyError:
             raise Exception("Erro on addElement in set index")
-        
         if(kind in ["ARG","VAR"]):
-            self.subroutineTable[name] = [_type, kind, index]
-         
+            self.subroutineTable[name] = [_type, kind, index]   
         elif (kind == "STATIC"):
             self.staticTable[name] = [_type, kind, index]
-
         else:
             self.fieldTable[name] = [_type, kind, index]
-
         self.count[kind] += 1
         return index
     
@@ -43,13 +36,10 @@ class Symboltable:
     def __getitem__(self, key):
         if(key in self.staticTable):
             return self.staticTable[key]
-
         elif(key in self.subroutineTable):
             return self.subroutineTable[key]
-
         elif (key in self.fieldTable):
             return self.fieldTable[key]
-        
         else:
             return False
     
@@ -59,6 +49,5 @@ class Symboltable:
             ref = self[key]
         else:
             ref = default
-
         return ref
 

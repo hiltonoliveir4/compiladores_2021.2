@@ -14,13 +14,13 @@ class AnalisadorLexico:
     string = '".*"'
 
     def __init__(self):
-        self.arquivo = open('./main/Square.jack', 'r').read()
+        self.arquivo = open('./main/main.jack', 'r').read()
         self.arquivo = re.sub('//.*'," ", self.arquivo) #remover os comentário com //
         self.arquivo = re.sub('(/\*(.|\n)*?\*/)'," ", self.arquivo) #remover os comentário com /* */
         self.tokens = self.regex.findall(self.arquivo)
         self.lentokens = len(self.tokens)
         self.indice = 0
-        self.saida = open('./main/saida.xml', 'w+')
+        self.saida = open('./main/main.xml', 'w+')
         self.identador = 0
 
     def trocarXML(self, simbolo):
@@ -74,7 +74,8 @@ class AnalisadorLexico:
             self.saida.writelines((self.identador * "  ") + "</{0}>\n".format(estado))
         else:
             if(flag == 0):
-                token = self.buscartoken() 
+                token = self.buscartoken()
+                token = self.trocarXML(token) 
                 tipo = self.tipo()
                 self.saida.writelines((self.identador * "  ") + "<{0}>{1}</{2}>\n".format(tipo, token,tipo))
 

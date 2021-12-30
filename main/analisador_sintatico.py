@@ -24,10 +24,10 @@ class AnalisadorSintatico:
         self.operador = {
             '+' : 'ADD',
             '-' : 'SUB',
-            '&amp' : 'AND',
+            '&' : 'AND',
             '|' : 'OR',
-            '&lt' : 'LT',
-            '&gt' : 'GT',
+            '<' : 'LT',
+            '>' : 'GT',
             '=' : 'EQ'
         }
 
@@ -412,6 +412,7 @@ class AnalisadorSintatico:
 
     def letStatement(self):
         self.escreverEstado('letStatement', 1)
+        array = False
 
         self.analisador_lexico.escrever()  # escreve  let
         self.analisador_lexico.avancar()
@@ -419,10 +420,13 @@ class AnalisadorSintatico:
         if (self.analisador_lexico.tipo() != 'identifier'):
             raise Exception("Esperando por um identificador no lugar de {}" .format(
                 self.analisador_lexico.buscartoken()))
+
         tipo, categ, pos = self.st.get(self.analisador_lexico.buscartoken())
         categoria = self.kindToSeg[categ]
-        self.analisador_lexico.avancar()  # escreve o identificador
-        self.analisador_lexico.escrever()
+
+        self.analisador_lexico.escrever() # escreve o identificador
+        self.analisador_lexico.avancar()  
+        
 
         while(self.analisador_lexico.buscartoken() == '['):
             self.analisador_lexico.escrever()  # escreve [
@@ -440,21 +444,23 @@ class AnalisadorSintatico:
             self.vm.push(categoria, pos)
             self.vm.writeExpression("ADD")
             self.vm.pop("TEMP", 0)
+            array = True
 
         if (self.analisador_lexico.buscartoken() != '='):
             raise Exception("Esperando por um = no lugar de {}" .format(
                 self.analisador_lexico.buscartoken()))
-
 
         self.analisador_lexico.escrever()  # escreve =
         self.analisador_lexico.avancar()
 
         self.compilarExpression()
 
-        self.vm.push("TEMP", 0)
-        self.vm.pop("POINTER", 1)
-        self.vm.pop("THAT", 0)
-
+        if(array):
+            self.vm.push("TEMP", 0)
+            self.vm.pop("POINTER", 1)
+            self.vm.pop("THAT", 0)
+        else:
+            self.vm.pop(categoria, pos)
 
         if (self.analisador_lexico.buscartoken() != ';'):
             raise Exception("Esperando por um ; no lugar de {}" .format(
@@ -596,19 +602,13 @@ class AnalisadorSintatico:
 
         self.compilarTermo()
 
-        while (self.analisador_lexico.buscartoken() in ['+', '-', '&amp', '|', '&lt', '&gt', '=']):
+        while (self.analisador_lexico.buscartoken() in ['+', '-', '>', '/', '*', '|', '<', '&', '=']):
             operacao = self.analisador_lexico.buscartoken()
             self.analisador_lexico.escrever()  # escreve +, &amp, |, &lt, &gt, =
             self.analisador_lexico.avancar()
 
-            if(self.analisador_lexico.buscartoken() != ","):
-                raise Exception("Era esperado um , no lugar de {0}".format(
-                    self.analisador_lexico.buscartoken()))
-
-            self.analisador_lexico.escrever()  # escreve ,
-            self.analisador_lexico.avancar()
-
             self.compilarTermo()
+
             if(operacao in self.operador):
                 self.vm.writeExpression(self.operador.get(operacao))
             elif(operacao == "*"):
@@ -711,8 +711,7 @@ class AnalisadorSintatico:
 
     def compilarString(self):
         self.escreverEstado('stringStatement',1)
-        string = self.analisador_lexico.buscartoken[1:]
-        print(string)
+        string = self.analisador_lexico.buscartoken()
 
         self.vm.push("CONST", len(string))
         self.vm.writeCall("String.new", 1)
@@ -725,7 +724,6 @@ class AnalisadorSintatico:
         self.analisador_lexico.avancar()
 
         self.escreverEstado('stringStatement', 2)
-
 
 a = AnalisadorSintatico()
 a.compilar()
