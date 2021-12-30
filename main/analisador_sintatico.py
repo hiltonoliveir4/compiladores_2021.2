@@ -70,7 +70,6 @@ class AnalisadorSintatico:
                 self.compilarSubroutineDec()
 
         self.escreverEstado("class", 2)
-        self.vm.close()
 
     def compilarClassVarDec(self):
         self.escreverEstado('classVarDec', 1)
@@ -365,6 +364,7 @@ class AnalisadorSintatico:
         self.analisador_lexico.avancar()
 
         if(self.analisador_lexico.buscartoken() == 'else'):
+            self.vm.writeGoto(labelEnd)
             self.analisador_lexico.escrever()  # espaço para else
             self.analisador_lexico.avancar()
 
@@ -383,8 +383,9 @@ class AnalisadorSintatico:
 
             self.analisador_lexico.escrever()  # espaço para }
             self.analisador_lexico.avancar()
-
             self.vm.writeLabel(labelEnd)
+
+        self.vm.writeLabel(labelFalse)
 
         self.escreverEstado('ifStatement', 2)
 
