@@ -1,6 +1,6 @@
 class Vmwriter:
-    def __init__(self):
-        self.output = open("./main/main.vm", "w+")
+    def __init__(self, path):
+        self.output = open("./projects/"+path+".vm", "w+")
 
         self.helperDict = {
             "POINTER": "pointer",
@@ -49,7 +49,4 @@ class Vmwriter:
             raise Exception
         localCase = command.lower()
         self.output.writelines(localCase + '\n')
-    
-    def close(self):
-        self.output.writelines("close \n")
 

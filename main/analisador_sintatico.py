@@ -4,10 +4,10 @@ from vmwriter import Vmwriter
 
 
 class AnalisadorSintatico:
-    def __init__(self):
-        self.analisador_lexico = AnalisadorLexico()
+    def __init__(self, path):
+        self.analisador_lexico = AnalisadorLexico(path)
         self.st = Symboltable()
-        self.vm = Vmwriter()
+        self.vm = Vmwriter(path)
         self.className = ''
 
 
@@ -561,7 +561,7 @@ class AnalisadorSintatico:
         self.analisador_lexico.avancar()
 
         # screver os parametros
-        self.compilarExpressionList()
+        numargs += self.compilarExpressionList()
 
         if(self.analisador_lexico.buscartoken() != ")"):
             raise Exception("Era esperado um ) no lugar de {0}".format(
@@ -725,6 +725,3 @@ class AnalisadorSintatico:
         self.analisador_lexico.avancar()
 
         self.escreverEstado('stringStatement', 2)
-
-a = AnalisadorSintatico()
-a.compilar()

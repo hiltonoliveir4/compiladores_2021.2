@@ -13,8 +13,8 @@ class AnalisadorLexico:
     integer = '[0-9]+'
     string = '".*"'
 
-    def __init__(self):
-        self.arquivo = open('./main/main.jack', 'r').read()
+    def __init__(self, path):
+        self.arquivo = open('./projects/'+path+'.jack', 'r').read()
         self.arquivo = re.sub('//.*'," ", self.arquivo) #remover os comentário com //
         self.arquivo = re.sub('(/\*(.|\n)*?\*/)'," ", self.arquivo) #remover os comentário com /* */
         self.tokens = self.regex.findall(self.arquivo)

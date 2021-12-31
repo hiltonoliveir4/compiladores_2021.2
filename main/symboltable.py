@@ -44,7 +44,6 @@ class Symboltable:
             return False
     
     def get(self, key, default = (None, None, -1)):
-        ref = None
         if(self[key]):
             ref = self[key]
         else:
