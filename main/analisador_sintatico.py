@@ -1,6 +1,7 @@
 from analisador_lexico import AnalisadorLexico
 from symboltable import Symboltable
 from vmwriter import Vmwriter
+from codeWriter import CodeWriter
 
 
 class AnalisadorSintatico:
@@ -8,28 +9,69 @@ class AnalisadorSintatico:
         self.analisador_lexico = AnalisadorLexico(path)
         self.st = Symboltable()
         self.vm = Vmwriter(path)
+        self.codeWriter = CodeWriter(path)
         self.className = ''
-
 
         self.ifLabelNum = 0
         self.whileLabelNum = 0
 
         self.kindToSeg = {
-            "FIELD" : "THIS",
-            "ARG" : "ARG",
-            "STATIC" : "STATIC",
-            "VAR" : "LOCAL"
+            "FIELD": "THIS",
+            "ARG": "ARG",
+            "STATIC": "STATIC",
+            "VAR": "LOCAL"
         }
 
         self.operador = {
-            '+' : 'ADD',
-            '-' : 'SUB',
-            '&' : 'AND',
-            '|' : 'OR',
-            '<' : 'LT',
-            '>' : 'GT',
-            '=' : 'EQ'
+            '+': 'ADD',
+            '-': 'SUB',
+            '&': 'AND',
+            '|': 'OR',
+            '<': 'LT',
+            '>': 'GT',
+            '=': 'EQ'
         }
+
+    def hasMoreCommands(self):
+        return self.position < len(self.tokens)
+
+    def advance(self):
+        self.currToken = self.tokens[self.position]
+        self.position = self.position + 1
+
+    def nextCommand(self):
+        self.advance()
+        if self.currToken == "return":
+            return command.return
+
+        elif self.currToken == "add" or self.currToken == "sub" or self.currToken == "neg" or self.currToken == "eq" or self.currToken == "gt" or self.currToken == "lt" or self.currToken == "and" or self.currToken == "or" or self.currToken == "not":
+            return command.Arithmetic(Name: self.currToken)
+        elif self.currToken == "label" or self.currToken == "if-goto" or self.currToken == "goto":
+           cmd = self.currToken
+           self.advance()
+           arg1 = self.currToken
+           if cmd == "label":
+               return command.Label(Name: arg1)
+            elif cmd == "goto":
+                return command.Goto(Label:arg1)
+            elif cmd == "if-goto":
+                return command.IFGoto(Label: arg1)
+        elif self.currToken == "push" or self.currToken == "pop" or self.currToken == "function" or self.currToken == "call":
+            cmd = self.currToken
+            self.advance()
+            arg1 = self.currToken
+            if cmd == "push":
+                return command.Push(arg1, arg2)
+            elif cmd == "pop":
+                return command.Pop(arg1, arg2)
+            elif cmd == "function":
+                return command.Function(arg1, arg2)
+            elif cmd == "call":
+                return command.CallFunction(arg1, arg2)
+
+        return command.UndefinedCommand()
+
+        
 
     def compilar(self):
         self.compilarClasse()
@@ -99,7 +141,8 @@ class AnalisadorSintatico:
                 raise Exception("Era esperado um identificador no lugar de {0}".format(
                     self.analisador_lexico.buscartoken()))
 
-            self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
+            self.st.addElement(
+                self.analisador_lexico.buscartoken(), tipo, kind)
 
             self.analisador_lexico.escrever()  # espaco para identificador
             self.analisador_lexico.avancar()
@@ -128,7 +171,8 @@ class AnalisadorSintatico:
             raise Exception("Era esperado um identificador no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
 
-        function_name = "{}.{}".format(self.className, self.analisador_lexico.buscartoken())
+        function_name = "{}.{}".format(
+            self.className, self.analisador_lexico.buscartoken())
 
         self.analisador_lexico.escrever()  # espaço o identificador
         self.analisador_lexico.avancar()
@@ -189,7 +233,8 @@ class AnalisadorSintatico:
                 raise Exception("Era esperado um identificador no lugar de {0}".format(
                     self.analisador_lexico.buscartoken()))
 
-            self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
+            self.st.addElement(
+                self.analisador_lexico.buscartoken(), tipo, kind)
             self.analisador_lexico.escrever()  # espaço o identificador
             self.analisador_lexico.avancar()
 
@@ -216,7 +261,7 @@ class AnalisadorSintatico:
             self.vm.writeCall("Memory.alloc", 1)
             self.vm.pop('POINTER', 0)
         elif(tipo == 'method'):
-            self.vm.push("ARG",0)
+            self.vm.push("ARG", 0)
             self.vm.pop("POINTER", 0)
 
         if (self.analisador_lexico.buscartoken() in ["return", "let", "do", "if", "while"]):
@@ -261,10 +306,11 @@ class AnalisadorSintatico:
             self.analisador_lexico.avancar()
 
             if(self.analisador_lexico.tipo() != 'identifier'):
-                        raise Exception("Era esperado um identificador no lugar de {0}".format(
-                            self.analisador_lexico.buscartoken()))
+                raise Exception("Era esperado um identificador no lugar de {0}".format(
+                    self.analisador_lexico.buscartoken()))
 
-            self.st.addElement(self.analisador_lexico.buscartoken(), tipo, kind)
+            self.st.addElement(
+                self.analisador_lexico.buscartoken(), tipo, kind)
             self.analisador_lexico.escrever()  # espaço para identificador
             self.analisador_lexico.avancar()
 
@@ -323,7 +369,6 @@ class AnalisadorSintatico:
 
         self.ifLabelNum += 1
 
-
         self.analisador_lexico.escrever()  # espaço para if
         self.analisador_lexico.avancar()
 
@@ -346,7 +391,7 @@ class AnalisadorSintatico:
 
         self.analisador_lexico.escrever()  # espaço para )
         self.analisador_lexico.avancar()
-        
+
         if(self.analisador_lexico.buscartoken() != '{'):
             raise Exception(
                 "Era esperado um " + "{" + " no lugar de {0}".format(self.analisador_lexico.buscartoken()))
@@ -425,9 +470,8 @@ class AnalisadorSintatico:
         tipo, categ, pos = self.st.get(self.analisador_lexico.buscartoken())
         categoria = self.kindToSeg[categ]
 
-        self.analisador_lexico.escrever() # escreve o identificador
-        self.analisador_lexico.avancar()  
-        
+        self.analisador_lexico.escrever()  # escreve o identificador
+        self.analisador_lexico.avancar()
 
         while(self.analisador_lexico.buscartoken() == '['):
             self.analisador_lexico.escrever()  # escreve [
@@ -499,7 +543,6 @@ class AnalisadorSintatico:
         self.analisador_lexico.escrever()  # )
         self.analisador_lexico.avancar()
 
-        
         if(self.analisador_lexico.buscartoken() != '{'):
             raise Exception("Era esperado um" + "{" + "no lugar de {0}".format(
                 self.analisador_lexico.buscartoken()))
@@ -613,12 +656,12 @@ class AnalisadorSintatico:
             if(operacao in self.operador):
                 self.vm.writeExpression(self.operador.get(operacao))
             elif(operacao == "*"):
-                self.vm.writeCall("Math.multiply",2)
+                self.vm.writeCall("Math.multiply", 2)
             elif(operacao == "/"):
-                self.vm.writeCall("Math.divide",2)
+                self.vm.writeCall("Math.divide", 2)
             else:
                 raise Exception
-                        
+
         self.escreverEstado('expression', 2)
 
     def compilarTermo(self):
@@ -642,7 +685,7 @@ class AnalisadorSintatico:
         elif(self.analisador_lexico.buscartoken() == 'this'):
             self.vm.push("POINTER", 0)
             self.analisador_lexico.escrever()
-            self.analisador_lexico.avancar()      
+            self.analisador_lexico.avancar()
 
         elif(self.analisador_lexico.tipo() == 'identifier'):
             ident = self.analisador_lexico.buscartoken()
@@ -652,7 +695,7 @@ class AnalisadorSintatico:
             if (self.analisador_lexico.buscartoken() in ['(', '.']):
                 self.compilarSubroutineCall(ident)
 
-            else: #array
+            else:  # array
                 if (self.analisador_lexico.buscartoken() == '['):
                     self.analisador_lexico.escrever()  # escreve o [
                     self.analisador_lexico.avancar()
@@ -667,14 +710,14 @@ class AnalisadorSintatico:
                     if(self.analisador_lexico.buscartoken() != "]"):
                         raise Exception("Era esperado um } no lugar de {0}".format(
                             self.analisador_lexico.buscartoken()))
-                    
+
                     self.vm.pop("POINTER", 1)
                     self.vm.push("THAT", 0)
 
                     self.analisador_lexico.escrever()  # escreve o ]
                     self.analisador_lexico.avancar()
-                
-                else: #variavel simples
+
+                else:  # variavel simples
                     tipo, categ, pos = self.st.get(ident)
                     category = self.kindToSeg[categ]
                     self.vm.push(category, pos)
@@ -711,7 +754,7 @@ class AnalisadorSintatico:
         self.escreverEstado('term', 2)
 
     def compilarString(self):
-        self.escreverEstado('stringStatement',1)
+        self.escreverEstado('stringStatement', 1)
         string = self.analisador_lexico.buscartoken()
 
         self.vm.push("CONST", len(string))
